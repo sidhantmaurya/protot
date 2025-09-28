@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arivo Admin Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .custom-blue { background-color: #1976D2; }
+        .custom-blue-hover:hover { background-color: #1565C0; }
+        .custom-red { background-color: #E53935; }
+        .custom-red-hover:hover { background-color: #D32F2F; }
+        .sidebar-active { background-color: #E3F2FD; color: #1976D2; }
+        .map-container { background: linear-gradient(135deg, #E8F5E8 0%, #F0F8FF 100%); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Sample data
+        const sampleDrivers = [
+            { id: 1, name: "John Smith", busNumber: "BUS-001", route: "Route A", status: "Active", phone: "+1234567890", license: "DL123456" },
+            { id: 2, name: "Maria Garcia", busNumber: "BUS-002", route: "Route B", status: "Active", phone: "+1234567891", license: "DL123457" },
+            { id: 3, name: "David Johnson", busNumber: "BUS-003", route: "Route C", status: "Suspended", phone: "+1234567892", license: "DL123458" },
+            { id: 4, name: "Sarah Wilson", busNumber: "BUS-004", route: "Route D", status: "Offline", phone: "+1234567893", license: "DL123459" }
+        ];
+
+        const sampleTrips = [
+            { id: 1, driver: "John Smith", route: "Route A", duration: "2h 15m", distance: "45 km", date: "2024-01-15", status: "Completed" },
+            { id: 2, driver: "Maria Garcia", route: "Route B", duration: "1h 45m", distance: "32 km", date: "2024-01-15", status: "Completed" },
+            { id: 3, driver: "David Johnson", route: "Route C", duration: "2h 30m", distance: "52 km", date: "2024-01-14", status: "Completed" },
+            { id: 4, driver: "Sarah Wilson", route: "Route D", duration: "1h 20m", distance: "28 km", date: "2024-01-14", status: "Completed" }
+        ];
+
+        const sampleAlerts = [
+            { id: 1, message: "Traffic jam on Route A - expect delays", type: "warning", date: "2024-01-15 10:30", status: "Active" },
+            { id: 2, message: "Emergency: Road closure on Main Street", type: "urgent", date: "2024-01-15 09:15", status: "Active" },
+            { id: 3, message: "Weather alert: Heavy rain expected", type: "info", date: "2024-01-15 08:00", status: "Sent" }
+        ];
+
+        // Login Component
+        const LoginScreen = ({ onLogin }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [showOTP, setShowOTP] = useState(false);
+            const [otp, setOTP] = useState('');
+            const [error, setError] = useState('');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (!email || !password) {
+                    setError('Please enter both email and password');
+                    return;
+                }
+                if (email === 'admin@arivo.com' && password === 'admin123') {
+                    setShowOTP(true);
+                    setError('');
+                } else {
+                    setError('Invalid credentials');
+                }
+            };
+
+            const handleOTPVerify = (e) => {
+                e.preventDefault();
+                if (otp === '123456') {
+                    onLogin();
+                } else {
+                    setError('Invalid OTP code');
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                    <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-bold text-gray-800">Arivo</h1>
+                            <p className="text-gray-600 mt-2">Admin Dashboard</p>
+                        </div>
+
+                        {!showOTP ? (
+                            <form onSubmit={handleLogin}>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="admin@arivo.com"
+                                    />
+                                </div>
+                                <div className="mb-6">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="admin123"
+                                    />
+                                </div>
+                                {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+                                <button
+                                    type="submit"
+                                    className="w-full custom-blue text-white py-2 px-4 rounded-md custom-blue-hover transition duration-200"
+                                >
+                                    Login
+                                </button>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleOTPVerify}>
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2">Enter OTP</label>
+                                    <input
+                                        type="text"
+                                        value={otp}
+                                        onChange={(e) => setOTP(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="123456"
+                                        maxLength="6"
+                                    />
+                                    <p className="text-sm text-gray-500 mt-1">Demo OTP: 123456</p>
+                                </div>
+                                {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+                                <button
+                                    type="submit"
+                                    className="w-full custom-blue text-white py-2 px-4 rounded-md custom-blue-hover transition duration-200"
+                                >
+                                    Verify OTP
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Dashboard Component
+        const Dashboard = () => {
+            return (
+                <div className="p-6">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard Overview</h1>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <div className="flex items-center">
+                                <div className="p-3 rounded-full custom-blue text-white">
+                                    <i className="fas fa-users"></i>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Total Drivers</p>
+                                    <p className="text-2xl font-bold text-gray-900">24</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <div className="flex items-center">
+                                <div className="p-3 rounded-full bg-green-500 text-white">
+                                    <i className="fas fa-bus"></i>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Active Trips</p>
+                                    <p className="text-2xl font-bold text-gray-900">12</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <div className="flex items-center">
+                                <div className="p-3 rounded-full bg-yellow-500 text-white">
+                                    <i className="fas fa-clock"></i>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Pending Approvals</p>
+                                    <p className="text-2xl font-bold text-gray-900">3</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <div className="flex items-center">
+                                <div className="p-3 rounded-full custom-red text-white">
+                                    <i className="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Reported Issues</p>
+                                    <p className="text-2xl font-bold text-gray-900">5</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activities</h3>
+                            <div className="space-y-3">
+                                <div className="flex items-center p-3 bg-gray-50 rounded">
+                                    <i className="fas fa-user-plus text-green-500 mr-3"></i>
+                                    <span className="text-sm">New driver John Smith registered</span>
+                                </div>
+                                <div className="flex items-center p-3 bg-gray-50 rounded">
+                                    <i className="fas fa-route text-blue-500 mr-3"></i>
+                                    <span className="text-sm">Route A completed successfully</span>
+                                </div>
+                                <div className="flex items-center p-3 bg-gray-50 rounded">
+                                    <i className="fas fa-bell text-yellow-500 mr-3"></i>
+                                    <span className="text-sm">Traffic alert sent to all drivers</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button 
+                                    onClick={() => {
+                                        setActiveTab('drivers');
+                                        // Trigger add driver modal after navigation
+                                        setTimeout(() => {
+                                            const addButton = document.querySelector('[data-action="add-driver"]');
+                                            if (addButton) addButton.click();
+                                        }, 100);
+                                    }}
+                                    className="p-4 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition duration-200 flex flex-col items-center"
+                                >
+                                    <i className="fas fa-plus text-xl mb-2"></i>
+                                    <p className="text-sm font-medium">Add Driver</p>
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        setActiveTab('alerts');
+                                        // Trigger send alert modal after navigation
+                                        setTimeout(() => {
+                                            const alertButton = document.querySelector('[data-action="send-alert"]');
+                                            if (alertButton) alertButton.click();
+                                        }, 100);
+                                    }}
+                                    className="p-4 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition duration-200 flex flex-col items-center"
+                                >
+                                    <i className="fas fa-bell text-xl mb-2"></i>
+                                    <p className="text-sm font-medium">Send Alert</p>
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('reports')}
+                                    className="p-4 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition duration-200 flex flex-col items-center"
+                                >
+                                    <i className="fas fa-chart-bar text-xl mb-2"></i>
+                                    <p className="text-sm font-medium">View Reports</p>
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('tracking')}
+                                    className="p-4 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition duration-200 flex flex-col items-center"
+                                >
+                                    <i className="fas fa-map text-xl mb-2"></i>
+                                    <p className="text-sm font-medium">Live Tracking</p>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Driver Management Component
+        const DriverManagement = () => {
+            const [drivers, setDrivers] = useState(sampleDrivers);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [statusFilter, setStatusFilter] = useState('All');
+            const [showAddModal, setShowAddModal] = useState(false);
+
+            const filteredDrivers = drivers.filter(driver => {
+                const matchesSearch = driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    driver.busNumber.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesStatus = statusFilter === 'All' || driver.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            const getStatusColor = (status) => {
+                switch(status) {
+                    case 'Active': return 'bg-green-100 text-green-800';
+                    case 'Offline': return 'bg-gray-100 text-gray-800';
+                    case 'Suspended': return 'bg-red-100 text-red-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            };
+
+            return (
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-bold text-gray-800">Driver Management</h1>
+                        <button 
+                            data-action="add-driver"
+                            onClick={() => setShowAddModal(true)}
+                            className="custom-blue text-white px-4 py-2 rounded-md custom-blue-hover transition duration-200"
+                        >
+                            <i className="fas fa-plus mr-2"></i>Add Driver
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md">
+                        <div className="p-4 border-b border-gray-200">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        placeholder="Search drivers..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="All">All Status</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Offline">Offline</option>
+                                    <option value="Suspended">Suspended</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bus Number</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredDrivers.map((driver) => (
+                                        <tr key={driver.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                                        {driver.name.charAt(0)}
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-gray-900">{driver.name}</div>
+                                                        <div className="text-sm text-gray-500">{driver.phone}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.busNumber}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{driver.route}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(driver.status)}`}>
+                                                    {driver.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button 
+                                                    onClick={() => alert(`Editing driver: ${driver.name}`)}
+                                                    className="text-blue-600 hover:text-blue-900 mr-3"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        const updatedDrivers = drivers.map(d => 
+                                                            d.id === driver.id 
+                                                                ? {...d, status: d.status === 'Suspended' ? 'Active' : 'Suspended'}
+                                                                : d
+                                                        );
+                                                        setDrivers(updatedDrivers);
+                                                    }}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    {driver.status === 'Suspended' ? 'Activate' : 'Suspend'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {showAddModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg w-full max-w-md">
+                                <h3 className="text-lg font-semibold mb-4">Add New Driver</h3>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const formData = new FormData(e.target);
+                                    const newDriver = {
+                                        id: drivers.length + 1,
+                                        name: formData.get('name'),
+                                        busNumber: formData.get('busNumber'),
+                                        route: formData.get('route'),
+                                        phone: formData.get('phone'),
+                                        license: formData.get('license'),
+                                        status: 'Active'
+                                    };
+                                    setDrivers([...drivers, newDriver]);
+                                    setShowAddModal(false);
+                                }}>
+                                    <div className="space-y-4">
+                                        <input name="name" type="text" placeholder="Driver Name" required className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                                        <input name="busNumber" type="text" placeholder="Bus Number" required className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                                        <input name="route" type="text" placeholder="Route" required className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                                        <input name="phone" type="tel" placeholder="Phone Number" required className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                                        <input name="license" type="text" placeholder="License Number" required className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+                                    </div>
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowAddModal(false)}
+                                            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit"
+                                            className="px-4 py-2 custom-blue text-white rounded-md custom-blue-hover"
+                                        >
+                                            Add Driver
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Live Tracking Component
+        const LiveTracking = () => {
+            const [selectedBus, setSelectedBus] = useState(null);
+
+            const buses = [
+                { id: 1, driver: "John Smith", route: "Route A", status: "Online", lat: 40.7128, lng: -74.0060 },
+                { id: 2, driver: "Maria Garcia", route: "Route B", status: "Online", lat: 40.7589, lng: -73.9851 },
+                { id: 3, driver: "David Johnson", route: "Route C", status: "Offline", lat: 40.7505, lng: -73.9934 },
+                { id: 4, driver: "Sarah Wilson", route: "Route D", status: "Trip Ended", lat: 40.7282, lng: -73.7949 }
+            ];
+
+            const getStatusColor = (status) => {
+                switch(status) {
+                    case 'Online': return 'bg-green-500';
+                    case 'Offline': return 'bg-gray-500';
+                    case 'Trip Ended': return 'bg-blue-500';
+                    default: return 'bg-gray-500';
+                }
+            };
+
+            return (
+                <div className="p-6">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-6">Live Bus Tracking</h1>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2">
+                            <div className="bg-white rounded-lg shadow-md p-4">
+                                <div className="map-container h-96 rounded-lg flex items-center justify-center relative">
+                                    <div className="text-center">
+                                        <i className="fas fa-map-marked-alt text-6xl text-gray-400 mb-4"></i>
+                                        <p className="text-gray-600">Interactive Map View</p>
+                                        <p className="text-sm text-gray-500">Real-time bus locations would appear here</p>
+                                    </div>
+                                    
+                                    {/* Simulated bus markers */}
+                                    <div className="absolute top-20 left-20 w-4 h-4 bg-green-500 rounded-full animate-pulse cursor-pointer" 
+                                         onClick={() => setSelectedBus(buses[0])}></div>
+                                    <div className="absolute top-32 right-32 w-4 h-4 bg-green-500 rounded-full animate-pulse cursor-pointer"
+                                         onClick={() => setSelectedBus(buses[1])}></div>
+                                    <div className="absolute bottom-24 left-32 w-4 h-4 bg-gray-500 rounded-full cursor-pointer"
+                                         onClick={() => setSelectedBus(buses[2])}></div>
+                                    <div className="absolute bottom-20 right-20 w-4 h-4 bg-blue-500 rounded-full cursor-pointer"
+                                         onClick={() => setSelectedBus(buses[3])}></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-white rounded-lg shadow-md p-4">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Bus Status</h3>
+                                <div className="space-y-3">
+                                    {buses.map((bus) => (
+                                        <div 
+                                            key={bus.id} 
+                                            className={`p-3 rounded-lg border cursor-pointer transition duration-200 ${
+                                                selectedBus?.id === bus.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                                            }`}
+                                            onClick={() => setSelectedBus(bus)}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-medium text-gray-800">{bus.driver}</p>
+                                                    <p className="text-sm text-gray-600">{bus.route}</p>
+                                                </div>
+                                                <div className={`w-3 h-3 rounded-full ${getStatusColor(bus.status)}`}></div>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">{bus.status}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {selectedBus && (
+                                <div className="bg-white rounded-lg shadow-md p-4">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Bus Details</h3>
+                                    <div className="space-y-2">
+                                        <p><span className="font-medium">Driver:</span> {selectedBus.driver}</p>
+                                        <p><span className="font-medium">Route:</span> {selectedBus.route}</p>
+                                        <p><span className="font-medium">Status:</span> 
+                                            <span className={`ml-2 px-2 py-1 text-xs rounded-full text-white ${getStatusColor(selectedBus.status)}`}>
+                                                {selectedBus.status}
+                                            </span>
+                                        </p>
+                                        <p><span className="font-medium">Location:</span> {selectedBus.lat.toFixed(4)}, {selectedBus.lng.toFixed(4)}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Alerts Component
+        const AlertsMessages = () => {
+            const [alerts, setAlerts] = useState(sampleAlerts);
+            const [showNewAlert, setShowNewAlert] = useState(false);
+            const [newAlert, setNewAlert] = useState({ message: '', type: 'info' });
+
+            const getAlertColor = (type) => {
+                switch(type) {
+                    case 'urgent': return 'bg-red-100 border-red-500 text-red-800';
+                    case 'warning': return 'bg-yellow-100 border-yellow-500 text-yellow-800';
+                    case 'info': return 'bg-blue-100 border-blue-500 text-blue-800';
+                    default: return 'bg-gray-100 border-gray-500 text-gray-800';
+                }
+            };
+
+            const getAlertIcon = (type) => {
+                switch(type) {
+                    case 'urgent': return 'fas fa-exclamation-triangle';
+                    case 'warning': return 'fas fa-exclamation-circle';
+                    case 'info': return 'fas fa-info-circle';
+                    default: return 'fas fa-bell';
+                }
+            };
+
+            const sendAlert = () => {
+                if (newAlert.message.trim()) {
+                    const alert = {
+                        id: alerts.length + 1,
+                        message: newAlert.message,
+                        type: newAlert.type,
+                        date: new Date().toLocaleString(),
+                        status: 'Sent'
+                    };
+                    setAlerts([alert, ...alerts]);
+                    setNewAlert({ message: '', type: 'info' });
+                    setShowNewAlert(false);
+                }
+            };
+
+            return (
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-bold text-gray-800">Alerts & Messages</h1>
+                        <button 
+                            data-action="send-alert"
+                            onClick={() => setShowNewAlert(true)}
+                            className="custom-blue text-white px-4 py-2 rounded-md custom-blue-hover transition duration-200"
+                        >
+                            <i className="fas fa-plus mr-2"></i>Send Alert
+                        </button>
+                    </div>
+
+                    {/* Urgent Alert Banner */}
+                    {alerts.some(alert => alert.type === 'urgent' && alert.status === 'Active') && (
+                        <div className="custom-red text-white p-4 rounded-lg mb-6">
+                            <div className="flex items-center">
+                                <i className="fas fa-exclamation-triangle mr-3"></i>
+                                <span className="font-semibold">URGENT ALERT ACTIVE</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-lg shadow-md">
+                        <div className="p-4 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-800">Recent Alerts</h3>
+                        </div>
+                        
+                        <div className="divide-y divide-gray-200">
+                            {alerts.map((alert) => (
+                                <div key={alert.id} className={`p-4 border-l-4 ${getAlertColor(alert.type)}`}>
+                                    <div className="flex items-start">
+                                        <i className={`${getAlertIcon(alert.type)} mt-1 mr-3`}></i>
+                                        <div className="flex-1">
+                                            <p className="font-medium">{alert.message}</p>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <p className="text-sm opacity-75">{alert.date}</p>
+                                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                                    alert.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                    {alert.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {showNewAlert && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg w-full max-w-md">
+                                <h3 className="text-lg font-semibold mb-4">Send New Alert</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Alert Type</label>
+                                        <select
+                                            value={newAlert.type}
+                                            onChange={(e) => setNewAlert({...newAlert, type: e.target.value})}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="info">Information</option>
+                                            <option value="warning">Warning</option>
+                                            <option value="urgent">Urgent</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                                        <textarea
+                                            value={newAlert.message}
+                                            onChange={(e) => setNewAlert({...newAlert, message: e.target.value})}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            rows="3"
+                                            placeholder="Enter alert message..."
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-3 mt-6">
+                                    <button 
+                                        onClick={() => setShowNewAlert(false)}
+                                        className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={sendAlert}
+                                        className="px-4 py-2 custom-blue text-white rounded-md custom-blue-hover"
+                                    >
+                                        Send Alert
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Trip Reports Component
+        const TripReports = () => {
+            const [trips, setTrips] = useState(sampleTrips);
+            const [dateFilter, setDateFilter] = useState('');
+            const [driverFilter, setDriverFilter] = useState('All');
+
+            const filteredTrips = trips.filter(trip => {
+                const matchesDate = !dateFilter || trip.date === dateFilter;
+                const matchesDriver = driverFilter === 'All' || trip.driver === driverFilter;
+                return matchesDate && matchesDriver;
+            });
+
+            const uniqueDrivers = [...new Set(trips.map(trip => trip.driver))];
+
+            return (
+                <div className="p-6">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-6">Trip Reports & Feedback</h1>
+
+                    <div className="bg-white rounded-lg shadow-md">
+                        <div className="p-4 border-b border-gray-200">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                    <input
+                                        type="date"
+                                        value={dateFilter}
+                                        onChange={(e) => setDateFilter(e.target.value)}
+                                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Driver</label>
+                                    <select
+                                        value={driverFilter}
+                                        onChange={(e) => setDriverFilter(e.target.value)}
+                                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="All">All Drivers</option>
+                                        {uniqueDrivers.map(driver => (
+                                            <option key={driver} value={driver}>{driver}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Driver</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distance</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredTrips.map((trip) => (
+                                        <tr key={trip.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                                                        {trip.driver.charAt(0)}
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <div className="text-sm font-medium text-gray-900">{trip.driver}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{trip.route}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{trip.duration}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{trip.distance}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{trip.date}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                    {trip.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Trip Statistics</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Total Trips:</span>
+                                    <span className="font-semibold">{trips.length}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Avg Duration:</span>
+                                    <span className="font-semibold">2h 2m</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Total Distance:</span>
+                                    <span className="font-semibold">157 km</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Feedback</h3>
+                            <div className="space-y-3">
+                                <div className="p-3 bg-green-50 rounded">
+                                    <p className="text-sm text-green-800">Route A completed on time</p>
+                                    <p className="text-xs text-green-600 mt-1">John Smith</p>
+                                </div>
+                                <div className="p-3 bg-yellow-50 rounded">
+                                    <p className="text-sm text-yellow-800">Minor delay due to traffic</p>
+                                    <p className="text-xs text-yellow-600 mt-1">Maria Garcia</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Performance</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">On-time Rate:</span>
+                                    <span className="font-semibold text-green-600">94%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Completion Rate:</span>
+                                    <span className="font-semibold text-green-600">98%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Issues Reported:</span>
+                                    <span className="font-semibold text-yellow-600">3</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Settings Component
+        const Settings = ({ theme, setTheme }) => {
+            const [profile, setProfile] = useState({
+                name: 'Admin User',
+                email: 'admin@arivo.com',
+                phone: '+1234567890',
+                role: 'System Administrator',
+                department: 'Operations'
+            });
+            const [language, setLanguage] = useState('en');
+            const [notifications, setNotifications] = useState(true);
+            const [emails, setEmails] = useState(false);
+            const [autoBackup, setAutoBackup] = useState(true);
+            const [dataRetention, setDataRetention] = useState('90');
+
+            return (
+                <div className="p-6 max-w-7xl mx-auto">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings & Configuration</h1>
+                        <p className="text-gray-600">Manage your account settings and system preferences</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        {/* Profile Information Card */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+                                <div className="flex items-center">
+                                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                        <i className="fas fa-user text-white"></i>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-lg font-semibold text-gray-900">Profile Information</h3>
+                                        <p className="text-sm text-gray-600">Update your personal details and contact information</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="p-6">
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                <i className="fas fa-user mr-2 text-gray-400"></i>Full Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={profile.name}
+                                                onChange={(e) => setProfile({...profile, name: e.target.value})}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                                placeholder="Enter your full name"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                <i className="fas fa-briefcase mr-2 text-gray-400"></i>Role
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={profile.role}
+                                                onChange={(e) => setProfile({...profile, role: e.target.value})}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                                placeholder="Your role/position"
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            <i className="fas fa-envelope mr-2 text-gray-400"></i>Email Address
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={profile.email}
+                                            onChange={(e) => setProfile({...profile, email: e.target.value})}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                            placeholder="your.email@company.com"
+                                        />
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                <i className="fas fa-phone mr-2 text-gray-400"></i>Phone Number
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                value={profile.phone}
+                                                onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                                placeholder="+1 (555) 123-4567"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                <i className="fas fa-building mr-2 text-gray-400"></i>Department
+                                            </label>
+                                            <select
+                                                value={profile.department}
+                                                onChange={(e) => setProfile({...profile, department: e.target.value})}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                                            >
+                                                <option value="Operations">Operations</option>
+                                                <option value="Management">Management</option>
+                                                <option value="IT Support">IT Support</option>
+                                                <option value="Customer Service">Customer Service</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex justify-end mt-8 pt-6 border-t border-gray-200">
+                                    <button 
+                                        onClick={() => alert('Profile updated successfully!')}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200 flex items-center"
+                                    >
+                                        <i className="fas fa-save mr-2"></i>
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Application Settings Card */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+                                <div className="flex items-center">
+                                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                                        <i className="fas fa-cogs text-white"></i>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-lg font-semibold text-gray-900">Application Settings</h3>
+                                        <p className="text-sm text-gray-600">Configure system preferences and display options</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="p-6">
+                                <div className="space-y-6">
+                                    {/* Display Settings */}
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                            <i className="fas fa-palette mr-2 text-gray-500"></i>Display & Interface
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Theme Preference</label>
+                                                <select
+                                                    value={theme}
+                                                    onChange={(e) => setTheme(e.target.value)}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200"
+                                                >
+                                                    <option value="light">🌞 Light Mode</option>
+                                                    <option value="dark">🌙 Dark Mode</option>
+                                                    <option value="auto">⚡ Auto (System)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                                                <select
+                                                    value={language}
+                                                    onChange={(e) => setLanguage(e.target.value)}
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200"
+                                                >
+                                                    <option value="en">🇺🇸 English</option>
+                                                    <option value="es">🇪🇸 Español</option>
+                                                    <option value="fr">🇫🇷 Français</option>
+                                                    <option value="de">🇩🇪 Deutsch</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Notification Settings */}
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                            <i className="fas fa-bell mr-2 text-gray-500"></i>Notifications & Alerts
+                                        </h4>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                                <div className="flex items-center">
+                                                    <i className="fas fa-mobile-alt text-blue-500 mr-3"></i>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">Push Notifications</p>
+                                                        <p className="text-sm text-gray-600">Receive real-time alerts and updates</p>
+                                                    </div>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={notifications}
+                                                        onChange={(e) => setNotifications(e.target.checked)}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                            
+                                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                                <div className="flex items-center">
+                                                    <i className="fas fa-envelope text-green-500 mr-3"></i>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">Email Notifications</p>
+                                                        <p className="text-sm text-gray-600">Get important updates via email</p>
+                                                    </div>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={emails}
+                                                        onChange={(e) => setEmails(e.target.checked)}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* System Settings */}
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center">
+                                            <i className="fas fa-server mr-2 text-gray-500"></i>System Configuration
+                                        </h4>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                                <div className="flex items-center">
+                                                    <i className="fas fa-database text-purple-500 mr-3"></i>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">Automatic Backup</p>
+                                                        <p className="text-sm text-gray-600">Daily system data backup</p>
+                                                    </div>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={autoBackup}
+                                                        onChange={(e) => setAutoBackup(e.target.checked)}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                                </label>
+                                            </div>
+                                            
+                                            <div className="p-4 bg-gray-50 rounded-lg">
+                                                <div className="flex items-center mb-3">
+                                                    <i className="fas fa-clock text-orange-500 mr-3"></i>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">Data Retention Period</p>
+                                                        <p className="text-sm text-gray-600">How long to keep system logs and data</p>
+                                                    </div>
+                                                </div>
+                                                <select
+                                                    value={dataRetention}
+                                                    onChange={(e) => setDataRetention(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                                >
+                                                    <option value="30">30 Days</option>
+                                                    <option value="90">90 Days</option>
+                                                    <option value="180">6 Months</option>
+                                                    <option value="365">1 Year</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex justify-end mt-8 pt-6 border-t border-gray-200">
+                                    <button 
+                                        onClick={() => alert('Settings saved successfully!')}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200 flex items-center"
+                                    >
+                                        <i className="fas fa-check mr-2"></i>
+                                        Apply Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Security</h3>
+                            <div className="space-y-4">
+                                <button 
+                                    onClick={() => alert('Password change form would open here')}
+                                    className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    <i className="fas fa-key mr-3 text-gray-500"></i>
+                                    Change Password
+                                </button>
+                                <button 
+                                    onClick={() => alert('2FA setup would open here')}
+                                    className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    <i className="fas fa-shield-alt mr-3 text-gray-500"></i>
+                                    Two-Factor Authentication
+                                </button>
+                                <button 
+                                    onClick={() => alert('Login history would be displayed here')}
+                                    className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    <i className="fas fa-history mr-3 text-gray-500"></i>
+                                    Login History
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">System Logs</h3>
+                            <div className="space-y-2 text-sm">
+                                <div className="p-2 bg-gray-50 rounded">
+                                    <span className="text-gray-500">2024-01-15 10:30:</span> User login successful
+                                </div>
+                                <div className="p-2 bg-gray-50 rounded">
+                                    <span className="text-gray-500">2024-01-15 10:25:</span> Driver added: John Smith
+                                </div>
+                                <div className="p-2 bg-gray-50 rounded">
+                                    <span className="text-gray-500">2024-01-15 10:20:</span> Alert sent to all drivers
+                                </div>
+                                <div className="p-2 bg-gray-50 rounded">
+                                    <span className="text-gray-500">2024-01-15 10:15:</span> System backup completed
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [theme, setTheme] = useState('light');
+
+            const menuItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                { id: 'drivers', label: 'Drivers', icon: 'fas fa-users' },
+                { id: 'tracking', label: 'Live Tracking', icon: 'fas fa-map-marked-alt' },
+                { id: 'alerts', label: 'Alerts', icon: 'fas fa-bell' },
+                { id: 'reports', label: 'Reports', icon: 'fas fa-chart-bar' },
+                { id: 'settings', label: 'Settings', icon: 'fas fa-cog' }
+            ];
+
+            const renderContent = () => {
+                switch(activeTab) {
+                    case 'dashboard': return <Dashboard />;
+                    case 'drivers': return <DriverManagement />;
+                    case 'tracking': return <LiveTracking />;
+                    case 'alerts': return <AlertsMessages />;
+                    case 'reports': return <TripReports />;
+                    case 'settings': return <Settings theme={theme} setTheme={setTheme} />;
+                    default: return <Dashboard />;
+                }
+            };
+
+            if (!isLoggedIn) {
+                return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+            }
+
+            return (
+                <div className={`flex h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+                    {/* Sidebar */}
+                    <div className={`w-64 shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+                        <div className={`p-6 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                            <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>Arivo</h1>
+                            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>Admin Dashboard</p>
+                        </div>
+                        
+                        <nav className="mt-6">
+                            {menuItems.map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id)}
+                                    className={`w-full flex items-center px-6 py-3 text-left transition duration-200 ${
+                                        activeTab === item.id 
+                                            ? `${theme === 'dark' ? 'bg-blue-900 text-blue-300' : 'sidebar-active'} border-r-2 border-blue-500` 
+                                            : `${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`
+                                    }`}
+                                >
+                                    <i className={`${item.icon} mr-3`}></i>
+                                    {item.label}
+                                </button>
+                            ))}
+                        </nav>
+
+                        <div className={`absolute bottom-0 w-64 p-6 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                            <button 
+                                onClick={() => setIsLoggedIn(false)}
+                                className={`w-full flex items-center px-4 py-2 rounded-md transition duration-200 ${
+                                    theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
+                                }`}
+                            >
+                                <i className="fas fa-sign-out-alt mr-3"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className={`flex-1 overflow-auto ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+                        {renderContent()}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'981cc726940991a4',t:'MTc1ODMyMzY1Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
